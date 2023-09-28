@@ -8,8 +8,6 @@ app.config['DEBUG_TB_INTERCEPT_REDIRECTS'] = False
 
 debug = DebugToolbarExtension(app)
 
-responses = []
-
 
 @app.get("/")
 def home():
@@ -22,7 +20,7 @@ def home():
 def begin():
     """Redirects to first question of survey"""
 
-    responses.clear()
+    session['responses'] = []
 
     return redirect("/questions/0")
 
@@ -30,6 +28,13 @@ def begin():
 @app.get("/questions/<int:id>")
 def questions(id):
     """Returns question and selectable choices"""
+
+    if len(session['responses']) == len(survey.questions):
+        return redirect('/thankyou')
+
+    correct_id = len(session['responses'])
+    if id != correct_id:
+        return redirect(f'/questions/{correct_id}')
 
     question = survey.questions[id]
 
@@ -40,11 +45,14 @@ def questions(id):
 def answers():
     """Saves user response, and redirects to next page"""
 
+    responses = session['responses']
+
     answer = request.form.get('answer')
     current_question_id = len(responses)
     next_question_id = current_question_id + 1
 
     responses.append(answer)
+    session['responses'] = responses
 
     if next_question_id == len(survey.questions):
         return redirect('/thankyou')
@@ -57,7 +65,7 @@ def completion():
     """Returns thank you page with users Q/As"""
 
     questions = [question.prompt for question in survey.questions]
-    answers = responses
+    answers = session['responses']
     # prompts = [{"question": questions[i], "answer": answers[i]} for i in range(len(responses))]
 
     return render_template('completion.html', questions=questions, answers=answers)
