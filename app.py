@@ -30,15 +30,22 @@ def questions(id):
     """Returns question and selectable choices"""
 
     if len(session['responses']) == len(survey.questions):
+        flash("You've already completed the survey.")
+
         return redirect('/thankyou')
 
-    correct_id = len(session['responses'])
-    if id != correct_id:
-        return redirect(f'/questions/{correct_id}')
+    current_question_id = len(session['responses'])
+    if id != current_question_id:
+        if id > current_question_id:
+            flash("Not so fast!")
+        else:
+            flash("You already answered that.")
+
+        return redirect(f'/questions/{current_question_id}')
 
     question = survey.questions[id]
 
-    return render_template("question.html", question=question, id=id)
+    return render_template("question.html", question=question)
 
 
 @app.post('/answer')
@@ -48,11 +55,10 @@ def answers():
     responses = session['responses']
 
     answer = request.form.get('answer')
-    current_question_id = len(responses)
-    next_question_id = current_question_id + 1
 
     responses.append(answer)
     session['responses'] = responses
+    next_question_id = len(responses)
 
     if next_question_id == len(survey.questions):
         return redirect('/thankyou')
